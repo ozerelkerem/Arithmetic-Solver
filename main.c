@@ -4,23 +4,31 @@
 #define MAX_INPUT_LENGTH 200
 #define MAX_SYMBOL 10
 
+//Struct for the storage characters value
 typedef struct values
 {
 	char symbol;
 	float value;
 }Values;
 
+
+//Stack for the storage characters
 typedef struct stack_c
 {
 	int top;	
 	char S[MAX_STACK_LENGTH];
 }STACK_c;
+
+//Stack for the storage integers
 typedef struct stack_i
 {
 	int top;	
 	int S[MAX_STACK_LENGTH];
 }STACK_i;
 
+
+/*Functions signatures start*/
+/*stack functions start*/
 char popFromStack_c(STACK_c *s);
 void pushToStack_c(STACK_c *s, char val);
 int popFromStack_i(STACK_i *s);
@@ -29,41 +37,48 @@ int isSTACK_cEmpty(STACK_c *s);
 int isSTACK_iEmpty(STACK_i *s);
 int isSTACK_cFull(STACK_c *s);
 int isSTACK_iFull(STACK_i *s);
+/*stack functions end*/
 
-int solvePostfix(Values *l,char *postfix);
 
 void insertChar(char *s,char ss);
 void insertString(char *s,char *ss);
 
 
 
-char *processInputLine(char *line,char *l,char **);
+char *processInputLine(char *line); // infix to postfix
+int solvePostfix(Values *l,char *postfix); // postfix to result
+
+int isArithmeticSign(char *s);// return 1 if the string is +,-,*,/,(,)
 int isNumber(char *s);
 int getPriority(char c);
 
-float getValues(Values *l,char sym);
-void setValues(Values *l,char sym,float val);
+float getValues(Values *l,char sym); // get a value from list 
+void setValues(Values *l,char sym,float val); // add a value to list ( a = 5 + 2 ;) so storage  a = 7;
+
+/*Functions signatures end*/
 
 int main()
 {
-	Values vals[MAX_SYMBOL];
-	memset(vals,NULL,sizeof(Values)*MAX_SYMBOL);
-	puts("Please give inputs =");
+	Values vals[MAX_SYMBOL]={0};
+	
+	puts("Please give inputs :\n");
 	char Input[MAX_INPUT_LENGTH];
+	
 	char *postfix;
-	char left;
+	
 	int finish = 0;
 	do
 	{
-		puts("\nGive Line :");
+		puts("\nInfix Form:");
 		gets(Input);
 	
 		if(Input[0])
 		{
-			processInputLine(Input,&left,&postfix);
-			printf("Prefix Form : %s \n", postfix);
+			postfix = processInputLine(Input);
+			printf("Postfix Form :\n%s \n", postfix);
 			int c = solvePostfix(vals,postfix);
-			printf("Result : %d", c);
+			free(postfix);
+			printf("Result : %d\n", c);
 		}
 		else
 			finish = 1;
@@ -106,7 +121,7 @@ int solvePostfix(Values *l,char *postfix)
 					pushToStack_i(&stack,y/x);
 					break;
 				case '-':
-					pushToStack_i(&stack,x-y);
+					pushToStack_i(&stack,y-x);
 					break;
 				case '*':
 					pushToStack_i(&stack,x*y);
@@ -119,31 +134,32 @@ int solvePostfix(Values *l,char *postfix)
 		}
 		token =  strtok(NULL, " ");
 	}
-	int xxx = (int)popFromStack_i(&stack);
-	setValues(l,left,xxx);
-	return  getValues(l,left);
+	setValues(l,left,(int)popFromStack_i(&stack)); // we find the result , result is the last integer at the stack
+	return getValues(l,left);
 }
 
-char *processInputLine(char *line,char *l,char **p) // return postfixform
+char *processInputLine(char *line) // return postfixform
 {
 	char *postfix = (char *)malloc(MAX_INPUT_LENGTH);
-	char popped;
 	postfix[0] = 0;
-	//create a stack
-	STACK_c stack;
-	stack.top=0;
+	
+	char popped;
+	
+	
+	STACK_c stack; //create a stack
+	stack.top=0; // set size = 0
 	
 	char *token = strtok(line, " ");
-	char left = token[0];
-	*l = left;
-	insertString(postfix,token);
+	
+	insertString(postfix,token); // first character  before '='
 	token =  strtok(NULL, " "); // pass left value
-	insertString(postfix,token);
+	insertString(postfix,token); // insert '='
 	token =  strtok(NULL, " "); // pass =
-	while (token[0] != ';')
+	
+	while (token[0] != ';') // read line until see the ';' character
     {
        	if(!isArithmeticSign(token))
-       		insertString(postfix,token);
+       		insertString(postfix,token); //insert to postfix if char is a number
        	else
        	{
 			switch(token[0])
@@ -152,7 +168,7 @@ char *processInputLine(char *line,char *l,char **p) // return postfixform
 						pushToStack_c(&stack,'(');
 					}break;
 					
-				case ')':{
+				case ')':{ // if read value ')' pop until see the '('
 						do
 						{
 							popped = popFromStack_c(&stack);
@@ -184,20 +200,19 @@ char *processInputLine(char *line,char *l,char **p) // return postfixform
 					}
 					
 					}break;
-				}
-					
-				
+				}			
 			}	
-			token =  strtok(NULL, " ");	
+			token =  strtok(NULL, " ");	// next value
 		}
-        
+		
+    /*insert after all line read*/
     while(!isSTACK_cEmpty(&stack))
     {
     	popped = popFromStack_c(&stack);
     	insertChar(postfix,popped);
 	}
 	insertString(postfix,";");
-    *p = postfix;
+    return postfix;
     
 }
 
@@ -241,7 +256,7 @@ void setValues(Values *l,char sym,float val)
 		int i;
 	for(i=0;i<MAX_SYMBOL;i++)
 	{
-		if(l[i].symbol == 0)
+		if(l[i].symbol == 0 || l[i].symbol == sym) // change value or insert new
 		{
 			l[i].symbol = sym;
 			l[i].value = val;
