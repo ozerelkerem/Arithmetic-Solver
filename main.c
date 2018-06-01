@@ -1,91 +1,49 @@
 #include<stdio.h>
+#include "main.h"
 
-#define MAX_STACK_LENGTH 100
-#define MAX_INPUT_LENGTH 200
-#define MAX_SYMBOL 10
+#define TEST 1
+#define file "input.txt"
 
-//Struct for the storage characters value
-typedef struct values
-{
-	char symbol;
-	float value;
-}Values;
-
-
-//Stack for the storage characters
-typedef struct stack_c
-{
-	int top;	
-	char S[MAX_STACK_LENGTH];
-}STACK_c;
-
-//Stack for the storage integers
-typedef struct stack_i
-{
-	int top;	
-	int S[MAX_STACK_LENGTH];
-}STACK_i;
-
-
-/*Functions signatures start*/
-/*stack functions start*/
-char popFromStack_c(STACK_c *s);
-void pushToStack_c(STACK_c *s, char val);
-int popFromStack_i(STACK_i *s);
-void pushToStack_i(STACK_i *s, int val);
-int isSTACK_cEmpty(STACK_c *s);
-int isSTACK_iEmpty(STACK_i *s);
-int isSTACK_cFull(STACK_c *s);
-int isSTACK_iFull(STACK_i *s);
-/*stack functions end*/
-
-
-void insertChar(char *s,char ss);
-void insertString(char *s,char *ss);
-
-
-
-char *processInputLine(char *line); // infix to postfix
-int solvePostfix(Values *l,char *postfix); // postfix to result
-
-int isArithmeticSign(char *s);// return 1 if the string is +,-,*,/,(,)
-int isNumber(char *s);
-int getPriority(char c);
-
-float getValues(Values *l,char sym); // get a value from list 
-void setValues(Values *l,char sym,float val); // add a value to list ( a = 5 + 2 ;) so storage  a = 7;
-
-/*Functions signatures end*/
 
 int main()
 {
+	FILE *f = readFile(file);
 	Values vals[MAX_SYMBOL]={0};
 	
-	puts("Please give inputs :\n");
+	
 	char Input[MAX_INPUT_LENGTH];
-	
 	char *postfix;
-	
-	int finish = 0;
-	do
+	while(fgets(Input,255,f)!=NULL) // get lines
 	{
-		puts("\nInfix Form:");
-		gets(Input);
+		printf("Infix : %s",Input);
+		#ifdef TEST
+			printf("--Infix to Postfix Started--\n");
+		#endif
+		postfix = processInputLine(Input);
+		#ifdef TEST
+			printf("--Infix to Postfix Finished--\n");
+		#endif		
+		printf("Postfix Form : %s \n", postfix);
+		#ifdef TEST
+			printf("--Solving Postfix Started--\n");
+		#endif
+		int c = solvePostfix(vals,postfix);
+		free(postfix);
+		#ifdef TEST
+			printf("--Solving Postfix Finished--\n");
+		#endif
+		printf("Result : %d\n\n", c);	
+	}
 	
-		if(Input[0])
-		{
-			postfix = processInputLine(Input);
-			printf("Postfix Form :\n%s \n", postfix);
-			int c = solvePostfix(vals,postfix);
-			free(postfix);
-			printf("Result : %d\n", c);
-		}
-		else
-			finish = 1;
-	}while(!finish);
-	
-	
-	
+	int i;
+	printf("All Results :\n");
+	for(i=0;i<MAX_SYMBOL;i++)
+	{
+		if(vals[i].symbol!=0)
+			printf("%c:%0.f, ",vals[i].symbol,vals[i].value);
+	}
+    
+	fclose(f);
 	
 	return 0;
 }
@@ -133,6 +91,12 @@ int solvePostfix(Values *l,char *postfix)
 			pushToStack_i(&stack,getValues(l,token[0]));
 		}
 		token =  strtok(NULL, " ");
+		
+		
+		#ifdef TEST
+			printStack_i(&stack);
+			printf("\n");
+		#endif
 	}
 	setValues(l,left,(int)popFromStack_i(&stack)); // we find the result , result is the last integer at the stack
 	return getValues(l,left);
@@ -203,6 +167,13 @@ char *processInputLine(char *line) // return postfixform
 				}			
 			}	
 			token =  strtok(NULL, " ");	// next value
+			
+			#ifdef TEST
+				printf("postfix : %s \t",postfix);
+				printStack_c(&stack);
+				printf("\n");
+			#endif
+			
 		}
 		
     /*insert after all line read*/
@@ -210,6 +181,12 @@ char *processInputLine(char *line) // return postfixform
     {
     	popped = popFromStack_c(&stack);
     	insertChar(postfix,popped);
+    	
+    	#ifdef TEST
+			printf("postfix : %s \t",postfix);
+			printStack_c(&stack);
+			printf("\n");
+		#endif
 	}
 	insertString(postfix,";");
     return postfix;
@@ -287,7 +264,6 @@ int getPriority(char c)
 	}
 }
 
-
 void insertString(char *s,char *ss)
 {
 	sprintf(s,"%s %s",s,ss);
@@ -297,6 +273,38 @@ void insertChar(char *s,char ss)
 	sprintf(s,"%s %c",s,ss);
 }
 
+
+FILE *readFile(char *filePath)
+{
+	FILE *f = fopen(filePath,"r");
+	
+	if(!f)
+	{
+		printf("File could not read!");
+		exit(1);
+	}
+	
+	return f;
+}
+
+
+
+
+
+void printStack_c(STACK_c *s)
+{
+	printf("Stack: ");
+	int i;
+	for(i=0;i<s->top;i++)
+		printf("%c",s->S[i]);
+}
+void printStack_i(STACK_i *s)
+{
+	printf("Stack: ");
+	int i;
+	for(i=0;i<s->top;i++)
+		printf("%d ",s->S[i]);
+}
 
 char popFromStack_c(STACK_c *s)
 {
